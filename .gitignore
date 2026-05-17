@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables
+.env
+
+# Windows system files
+Thumbs.db
+
+# VS Code settings
+.vscode/
