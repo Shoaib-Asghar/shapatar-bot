@@ -473,4 +473,310 @@ def _transition_to(ctx: dict, new_mood: str) -> dict:
     ctx["stress_count"] = 0     # Reset stress accumulation on any transition
     return ctx
 
-    
+
+# =============================================================================
+# RESPONSE GENERATION
+# =============================================================================
+#
+# Two functions:
+#   generate_response()  → selects/assembles raw response content
+#   apply_style()        → applies personality-wide surface transforms
+#
+# And the master pipeline function:
+#   process_message()    → the single public entry point for the whole bot
+# =============================================================================
+
+
+def generate_response(intent: str, context: dict) -> str:
+    """
+    Select or assemble a response based on detected intent and current mood.
+
+    This function knows what to say. It does not know how he says things —
+    that is apply_style()'s job.
+
+    Args:
+        intent:   The intent string from detect_intent().
+        context:  The current conversation context (post mood-update).
+
+    Returns:
+        A raw response string, before style transforms are applied.
+    """
+
+    mood = context["mood"]
+
+    # ------------------------------------------------------------------
+    # GUARD CLAUSE 1: EXPLODING
+    # Explosion is the highest priority state. It overrides intent entirely, 
+    # he is not processing what you said, he is venting.
+    # Assemble the rant from three pools: opener, middle, closer.
+    # ------------------------------------------------------------------
+    if mood == "exploding":
+        opener = random.choice(EXPLOSION_OPENERS)
+        middle = random.choice(EXPLOSION_MIDDLES)
+        closer = random.choice(EXPLOSION_CLOSERS)
+        # Join with line breaks — the fragmented, uncontrolled feel
+        return f"{opener}\n{middle}\n{closer}"
+
+    # ------------------------------------------------------------------
+    # GUARD CLAUSE 2: SULKING
+    # Sulking also overrides intent, he gives minimal responses
+    # regardless of what was asked. One word or short phrase, cold.
+    # ------------------------------------------------------------------
+    if mood == "sulking":
+        return random.choice(SULKING_RESPONSES)
+
+    # ------------------------------------------------------------------
+    # TENSE MOOD RESPONSES
+    # Still processes intent, but with tense-specific pools.
+    # Fence-sitting is more anxious, general responses are shorter.
+    # ------------------------------------------------------------------
+    if mood == "tense":
+        return _generate_tense_response(intent, context)
+
+    # ------------------------------------------------------------------
+    # NORMAL MOOD RESPONSES
+    # Full personality active. Intent-specific responses.
+    # This is where the fence-sit assembly, passion topics, and
+    # eager volunteering all live.
+    # ------------------------------------------------------------------
+    return _generate_normal_response(intent, context)
+
+
+def _generate_tense_response(intent: str, context: dict) -> str:
+    """
+    Generate a response for the tense mood state.
+
+    Helper extracted to keep generate_response() readable.
+    Tense mood has fewer intent-specific responses — most intents
+    get the tense general treatment, with invitations getting the
+    tense fence-sit and stress getting a stress acknowledgement.
+    """
+
+    if intent == "invitation":
+        return random.choice(TENSE_FENCE_SIT)
+
+    if intent == "stress":
+        return random.choice(TENSE_STRESS_ACKNOWLEDGE)
+
+    # Passion topics still get some response even when tense, he cannot fully suppress his enthusiasm for cars or YS
+    # but responses are shorter. We reuse the normal pools but pick the shortest option by using random.choice directly.
+    if intent in ("cars", "iphone", "young_stunners", "karachi", "travel"):
+        pool = _get_passion_pool(intent)
+        return random.choice(pool)
+
+    # Everything else: tense general fallback
+    return random.choice(TENSE_GENERAL)
+
+
+def _generate_normal_response(intent: str, context: dict) -> str:
+    """
+    Generate a response for the normal mood state.
+
+    Helper for the full-personality, full-intent response logic.
+    This is the richest function — handles all the character's
+    distinctive behaviours.
+    """
+
+    # ---- INVITATION: the fence-sit -------------------------------------
+    # This is the bot's signature behaviour. Uses weighted probability
+    # to choose between three response strategies.
+    if intent == "invitation":
+
+        # Check if this is a follow-up to a previous fence-sit.
+        # If the last intent was also an invitation, the user may be
+        # pressing him on the "masla" he raised. Use double fence-sit.
+        if context["last_intent"] == "invitation":
+            if random.random() < DOUBLE_FENCE_SIT_PROB:
+                return random.choice(FENCE_SIT_DOUBLE)
+
+        # Weighted choice between the three invitation behaviours.
+        # random.choices() returns a list of k=1 items — we take [0].
+        behaviour = random.choices(
+            ["fence_sit", "direct_yes", "topic_dodge"],
+            weights=[
+                FENCE_SIT_PROBABILITY,
+                DIRECT_YES_PROBABILITY,
+                TOPIC_DODGE_PROBABILITY
+            ],
+            k=1
+        )[0]
+
+        if behaviour == "direct_yes":
+            return random.choice(DIRECT_YES)
+
+        if behaviour == "topic_dodge":
+            return random.choice(TOPIC_DODGE)
+
+        # Default: assemble a fence-sit from parts.
+        # This is template assembly — combinatorial variety.
+        agreement   = random.choice(FENCE_SIT["agreements"])
+        reassurance = random.choice(FENCE_SIT["reassurances"])
+        pivot       = random.choice(FENCE_SIT["pivots"])
+        objection   = random.choice(FENCE_SIT["objections"])
+        return f"{agreement}, {reassurance}. {pivot} {objection}."
+
+    # ---- FOLLOW-UP: pressing him on what the masla is -----------------
+    if intent == "followup":
+        # If last turn was an invitation (he just fence-sat), deflect.
+        # Otherwise treat as general — he did not fence-sit just now.
+        if context["last_intent"] in ("invitation", "followup"):
+            return random.choice(FOLLOWUP_DEFLECTION)
+        return random.choice(GENERAL_CHAT)
+
+    # ---- HELP REQUEST: eager volunteering -----------------------------
+    if intent == "help_request":
+        # If last turn was also help_request, user is pressing on HOW.
+        if context["last_intent"] == "help_request":
+            return random.choice(VOLUNTEER_FOLLOWUP)
+        return random.choice(EAGER_VOLUNTEER)
+
+    # ---- GREETING -----------------------------------------------------
+    if intent == "greeting":
+        return random.choice(GREETING_RESPONSES)
+
+    # ---- OPINION REQUEST ----------------------------------------------
+    if intent == "opinion":
+        return random.choice(OPINION_RESPONSES)
+
+    # ---- PASSION TOPICS -----------------------------------------------
+    # These get enthusiastic, topic-specific responses with no fence-sit.
+    if intent in ("cars", "iphone", "young_stunners", "karachi", "travel"):
+        pool = _get_passion_pool(intent)
+        return random.choice(pool)
+
+    # ---- GENERAL FALLBACK ---------------------------------------------
+    return random.choice(GENERAL_CHAT)
+
+
+def _get_passion_pool(intent: str) -> list:
+    """
+    Return the correct response pool for a passion topic intent.
+    """
+    pools = {
+        "cars":           CARS_RESPONSES,
+        "iphone":         IPHONE_RESPONSES,
+        "young_stunners": YOUNG_STUNNERS_RESPONSES,
+        "karachi":        KARACHI_RESPONSES,
+        "travel":         TRAVEL_RESPONSES,
+    }
+    # .get() with a default prevents KeyError if an unexpected intent
+    # is passed. Falls back to general chat.
+    return pools.get(intent, GENERAL_CHAT)
+
+
+# =============================================================================
+# STYLE LAYER
+# =============================================================================
+
+
+def apply_style(response: str, mood: str) -> str:
+    """
+    Apply personality-wide surface transforms to any response.
+
+    This function knows HOW he says things. It does not know what
+    was said — that was generate_response()'s job.
+
+    Transforms are probabilistic — each fires independently with
+    its own probability from data.py. They are also mood-gated:
+    sulking and exploding bypass this layer entirely, because the
+    absence of his normal style IS the emotional signal.
+
+    Args:
+        response:  Raw response string from generate_response().
+        mood:      Current mood string from context.
+
+    Returns:
+        The response with style transforms applied (or unchanged
+        if mood suppresses the style layer).
+    """
+
+    # Style layer is completely skipped for sulking and exploding.
+    # In sulking: cold brevity is the message. Adding "yaar" would
+    # completely destroy the characterisation.
+    # In exploding: the rant has its own raw style already.
+    if mood in ("sulking", "exploding"):
+        return response
+
+    # From here: normal and tense moods get style treatment.
+    # Tense gets lighter treatment — less warmth, so ABEY_PREFIX
+    # is skipped for tense. YAAR and ELLIPSIS still apply.
+
+    # Transform 1: ABEY prefix (normal mood only)
+    # "abey yaar bata, kya scene hai?" — very Karachi, used sparingly
+    if mood == "normal" and random.random() < ABEY_PREFIX_PROB:
+        # Only add if response does not already start with "abey"
+        if not response.lower().startswith("abey"):
+            response = "abey " + response
+
+    # Transform 2: YAAR suffix
+    # "haan yaar bata, kya scene hai? yaar"  ← too much
+    # We only add if "yaar" does not already appear in the response
+    # and the response does not end with punctuation-equivalent words.
+    if random.random() < YAAR_INSERTION_PROB:
+        # Avoid doubling up — check if yaar already in response
+        if "yaar" not in response.lower():
+            response = response + " yaar"
+
+    # Transform 3: ELLIPSIS suffix
+    # Creates the trailing vagueness — particularly appropriate for
+    # his fence-sitting and deflection patterns even in casual speech.
+    # Applied after yaar so we get "response yaar..." not "response... yaar"
+    if random.random() < ELLIPSIS_PROB:
+        # Do not add ellipsis if response already ends with "..."
+        if not response.endswith("..."):
+            response = response + "..."
+
+    return response
+
+
+# =============================================================================
+# MASTER PIPELINE FUNCTION
+# =============================================================================
+
+
+def process_message(user_text: str, context: dict) -> tuple:
+    """
+    The single public entry point for the entire bot pipeline.
+
+    This is the only function main.py needs to call. It runs all
+    five stages of the pipeline in sequence and returns the final
+    response string and the updated context.
+
+    Pipeline stages:
+        1. preprocess()       — clean the input
+        2. detect_intent()    — classify the input
+        3. update_mood()      — transition the state machine
+        4. generate_response() — select/assemble raw response
+        5. apply_style()      — apply surface personality transforms
+
+    Args:
+        user_text:  Raw string from the user.
+        context:    Current conversation context from create_context()
+                    or a previous call to process_message().
+
+    Returns:
+        (response: str, updated_context: dict)
+        The caller is responsible for storing the updated context
+        and passing it into the next call.
+    """
+
+    # Stage 1: Clean the input
+    cleaned = preprocess(user_text)
+
+    # Stage 2: Classify intent
+    # Pass last_intent from context for conversational awareness
+    intent, _ = detect_intent(cleaned, context.get("last_intent"))
+
+    # Stage 3: Update mood based on intent
+    context = update_mood(context, intent)
+
+    # Stage 4: Generate raw response
+    raw_response = generate_response(intent, context)
+
+    # Stage 5: Apply style layer
+    final_response = apply_style(raw_response, context["mood"])
+
+    # Store the response for context continuity
+    context["last_response"] = final_response
+
+    return final_response, context
