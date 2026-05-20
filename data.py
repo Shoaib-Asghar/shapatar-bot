@@ -63,17 +63,33 @@ INVITATION_TRIGGERS = [
     "chalte hain", "chalte hen", "chalte ha",
     "chal chalte", "chal yaar chalte", "chal bhai chalte",
     "chalein kya", "chalein na", "nikalte hain", "nikal chalte",
-    "bahar chalte", "bahar nikalte",
+    "bahar chalte", "bahar nikalte", "nikal na yaar", "nikalte hai",
+    "kahan jana hai", "kidhar jana hai", "kahan nikalna",
+    "nikalna hai kya", "nikalna hai na",
+    "chal len ge", "chalenge kya", "chalen ge kya",
+    "aaj nikalte", "aaj nikalte hain",
+    "kal nikalte", "kal nikalte hain",
+    "kal gaadi pe jana", "kal gari pe jana", "gaadi pe jana", "gari pe jana",
     # Invitations to join something
     "chalo saath", "saath chaloge", "saath chalte",
     "aao chalte", "aa jao", "aa jana",
     "jana hai kya", "jana hai na", "jana chahiye",
     "jayen kya", "jayen na", "jaoge kya",
+    "aana hai na", "aana hai kya", "aana hai", "aana ya nahi",
+    "aoge na", "aoge kya", "aoge ya nahi",
+    "tu aana", "tu aa jana",
     # Plan-making phrases
     "plan banao", "plan ban gaya", "plan pakka", "kya plan", "plan kya",
+    "plan done", "plan final", "plan confirm", "plan set",
+    "done karte hain", "final karte hain", "confirm karte hain",
     "milte hain", "kahan milna", "kab milna",
     "outing karte", "ghumne chalte", "trip karte hain",
     "movie chalte", "khaane chalte", "chai peene chalte",
+    "aaj kuch karte hain", "scene banao", "scene banao koi", "scene bano",
+    "tu available", "available hai", "available ha",
+    "free ho", "free hai", "free hai kya",
+    "ready ho", "ready ho na", "ready reh",
+    "tyar ho", "tyar reh", "tayar ho", "tayar reh",
 ]
 
 # --- OPINION / QUESTION TRIGGERS ---
@@ -85,14 +101,18 @@ OPINION_TRIGGERS = [
     "kya lagta hai", "kya lagta", "kaisa lagta hai",
     "teri ray kya", "teri ray hai", "teri opinion",
     "tu kya sochta", "tum kya sochte", "aap kya sochte",
-    "batao kya sochte", "sach batao",
+    "batao kya sochte", "sach batao", "kya sochta hai tu",
+    "kya khayal hai", "tera kya khayal",
+    "kya kehta hai", "tera kya kehna", "tera kya bolna",
+    "kya mashwara", "mashwara do", "apni rai do",
+    "kya advice hai", "advice do",
     # Assessment requests
     "kaisa hai yeh", "kaisa laga", "kaisa laga yeh",
     "acha hai kya", "bura hai kya", "theek hai kya",
     "sahi hai kya", "galat hai kya",
     # Recommendations
     "kya karna chahiye", "kya karo", "kya karoon",
-    "suggest karo", "bata kya karo",
+    "suggest karo", "bata kya karo", "bata kya karna hai",
 ]
 
 # --- HELP / VOLUNTEER TRIGGERS ---
@@ -109,6 +129,11 @@ HELP_TRIGGERS = [
     "manage kar", "manage karo", "dekh lo yeh",
     "yeh kaam kar", "yeh kar do", "yeh kar sakta",
     "kaam karo", "koi kaam kar",
+    "manage kar le ga", "manage kar lega", "manage kar loge",
+    "handle kar le ga", "handle kar lega",
+    "sara manage", "sara sambhal", "sara handle",
+    "tu manage kar", "tum manage kar", "tu sambhal", "tum sambhalo",
+    "tu handle kar", "tum handle kar",
     # Asking for someone capable
     "kisi ko chahiye", "reliable banda",
     "trustworthy banda", "koi achha banda",
@@ -124,6 +149,7 @@ STRESS_TRIGGERS = [
     "sab ko batao", "sab ko bolo", "kitne log hain",
     "sab arrange karo", "sab set karo",
     "list banao", "list ready", "kaun kaun hai",
+    "sab ko confirm karwa do", "sab confirm karo", "confirm karwalo",
     # Scheduling pressure
     "time pe aana", "waqt pe aana", "late mat hona",
     "schedule karo", "confirm karo", "booking karo",
@@ -131,6 +157,11 @@ STRESS_TRIGGERS = [
     # Financial pressure
     "paise ka kya", "paise kaise", "paise arrange",
     "budget kya hai", "kitna kharch", "kaun dega",
+    "paise manage", "paisa manage", "paise jama", "paisa jama",
+    "funds arrange", "paisa arrange", "paise collect",
+    "budget set", "budget fix", "expense manage",
+    "hisab kitab", "payment karna", "payment ka",
+    "split karo", "share karo",
     # Event/task management pressure
     "event manage", "sab handle", "akele karna",
     "bahut kaam hai", "itna kaam", "kaam zyada",
@@ -150,15 +181,19 @@ ANGER_TRIGGERS = [
     # Broken promises
     "wada kiya tha", "bola tha na", "kaha tha na",
     "bhool gaye", "bhool gaya", "yaad nahi raha",
-    "commitment tod", "wada tod",
+    "commitment tod", "wada tod", "wada tod diya", "wada tod diya usne", "dhoka",
+    "promise tod", "promise tod diya",
+    "time pe nahi aaya", "time pe nahi aaye",
     # Betrayal / deception
     "dhoka diya", "dhoka mila", "jhooth bola",
     "jhooth tha", "galat bola", "fareb kiya",
     "cheat kiya", "dhoka hai",
     # Being excluded / disrespected
     "nahi bataya", "chhupa liya", "andheron mein rakha",
-    "mujhe nahi bataya", "sab ko pata tha",
-    "mujhe ignore", "meri nahi suni",
+    "mujhe nahi bataya", "sab ko pata tha", "nahi bataya mujhe",
+    "mujhe ignore", "ignore kiya", "meri nahi suni",
+    "mujhe chor diya", "mujhe chhor diya", "respect nahi",
+    "beizzati ki",
     # Being cheated / wronged
     "mera haq tha", "yeh sahi nahi", "yeh galat hai",
     "insaaf nahi", "theek nahi kiya",
@@ -169,7 +204,7 @@ ANGER_TRIGGERS = [
 # Kept broad because greetings ARE short and specific enough.
 GREETING_TRIGGERS = [
     "assalam", "salam", "salaam", "aoa",
-    "hey", "hi ", "hello", "hii",
+    "hey", "hello", "helo", "hi yaar", "hi bhai", "hi bro",
     "kya haal", "kaise ho", "kaisa hai",
     "kya scene hai", "scene kya hai",
     "kya chal raha", "kya ho raha",
@@ -254,6 +289,9 @@ TRAVEL_TRIGGERS = [
     "murree jayen", "nathia gali jayen",
     "lahore trip", "islamabad trip", "northern areas",
     "hunza jayen", "swat jayen", "kaghan jayen", "trip pe", "trip ka",
+    "trip ka mood", "trip ka plan", "trip ka scene",
+    "trip done", "trip final", "trip confirm",
+    "murree ki trip", "murree plan", "murree ka plan",
     # International
     "dubai trip", "abroad jayen", "foreign jayen",
     "turkey trip", "thailand trip",
@@ -265,7 +303,7 @@ TRAVEL_TRIGGERS = [
 # --- FOLLOW-UP QUESTION TRIGGERS ---
 # Special category: fires when user is pressing him on something he
 # just said — e.g. "kya masla hai", "kaisa karega".
-# This enables the second-layer fence-sit / deflection behaviour.
+# This enables the second-layer fence-sit / deflection behaviour. 
 FOLLOWUP_TRIGGERS = [
     "kya masla hai", "kaunsa masla", "konsa masla",
     "kaisa karega", "kaise karega", "kaise karoge",
@@ -276,6 +314,77 @@ FOLLOWUP_TRIGGERS = [
     "confirm hai kya", "sure hai kya",
 ]
 
+
+INTENT_ROOT_PATTERNS = {
+    "invitation": [
+        r'\bchal\w*',
+        r'\bjana\w*',
+        r'\bjao\w*',
+        r'\bjaoge\w*',
+        r'\bjayen\w*',
+        r'\bjayenge\w*',
+        r'\baao\w*',
+        r'\baana\w*',
+        r'\bnikal\w*',
+        r'\bmil\w*',
+        r'\btrip\w*',
+        r'\bplan\w*'
+    ],
+    "opinion": [
+        r'\bsoch\w*',
+        r'\bkhayal\w*',
+        r'\blagta\w*',
+        r'\bmashwar\w*',
+        r'\brai\w*',
+        r'\bopinion\w*'
+    ],
+    "help_request": [
+        r'\bkarna\w*',
+        r'\bkaro\w*',
+        r'\bkarega\w*',
+        r'\bkarne\w*',
+        r'\bkarwa\w*',
+        r'\bmanage\w*',
+        r'\bhandle\w*',
+        r'\bsambhal\w*',
+        r'\bhelp\w*'
+    ],
+    "stress": [
+        r'\bmanage\w*',
+        r'\bsambhal\w*',
+        r'\bhandle\w*',
+        r'\bconfirm\w*',
+        r'\bschedule\w*',
+        r'\bbooking\w*',
+        r'\barrange\w*',
+        r'\bpaise\w*',
+        r'\bbudget\w*'
+    ],
+    "anger": [
+        r'\bwada\w*',
+        r'\bpromise\w*',
+        r'\bdhoka\w*',
+        r'\bjhoot\w*',
+        r'\bignore\w*',
+        r'\binsaaf\w*',
+        r'\bgalat\w*'
+    ],
+    "followup": [
+        r'\bkaisa\w*',
+        r'\bkaise\w*',
+        r'\bkab\w*',
+        r'\bkyun\w*',
+        r'\bphir\w*',
+        r'\bexplain\w*'
+    ],
+    "greeting": [
+        r'\bassalam\w*',
+        r'\bsalam\w*',
+        r'\bhello\w*',
+        r'\bhey\w*',
+        r'\bhi\w*'
+    ]
+}
 
 # =============================================================================
 # SECTION 2: NEGATION WORDS
@@ -694,6 +803,19 @@ GENERAL_CHAT = [
     "yaar main bhi yahi soch raha tha honestly",
     "bhai anni machadi yaar, sach mein",
     "haan yaar, fit hai yeh",
+    "bhai kya baat kar raha hai?",
+    "yaar mujhe samjha nahi aya, phir se bol",
+    "achaa? phir kya hua?",
+    "bhai sahi keh raha hai tu",
+    "yaar wese baat hai toh badiya",
+    "haan yaar, bilkul",
+    "abey kya keh diya bhai tu ne",
+    "sahi baat, mazaa aa gaya sun ke",
+    "chal sahi hai, aur detail de",
+    "bhai scene toh on lag raha hai",
+    "wah yaar, yeh alag hi scene hai",
+    "tu ne toh kamal kar diya",
+    "haan yaar, theek keh raha hai",
 ]
 
 
@@ -856,7 +978,7 @@ TENSE_RECOVERY_TURNS     = 12   # Messages with no stress before TENSE drifts to
 EXPLOSION_COOLDOWN_TURNS = 15   # Cannot explode again within this many turns
 
 # --- EVENT PROBABILITIES ---
-EXPLOSION_PROBABILITY    = 0.20  # Chance of exploding when threshold is met (not certain)
+EXPLOSION_PROBABILITY    = 0.80  # Chance of exploding when threshold is met (not certain)
 
 # --- INVITATION RESPONSE PROBABILITIES (must sum to 1.0) ---
 FENCE_SIT_PROBABILITY    = 0.78  # Standard fence-sit with "lekin"

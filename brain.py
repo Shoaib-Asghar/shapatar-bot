@@ -27,6 +27,9 @@ from data import (
     CARS_TRIGGERS, IPHONE_TRIGGERS, YOUNG_STUNNERS_TRIGGERS,
     KARACHI_TRIGGERS, TRAVEL_TRIGGERS, FOLLOWUP_TRIGGERS,
 
+    # Root patterns
+    INTENT_ROOT_PATTERNS,
+
     # Negation and intent routing
     NEGATION_WORDS,
     INTENT_PRIORITY,
@@ -161,6 +164,35 @@ INTENT_TRIGGER_MAP = {
     # "general" has no triggers — it is the fallback, always fires last
 }
 
+# Pre-compile regex root patterns for intent matching.
+ROOT_PATTERN_MAP = {
+    intent: [re.compile(pattern, re.IGNORECASE) for pattern in patterns]
+    for intent, patterns in INTENT_ROOT_PATTERNS.items()
+}
+
+
+def _negation_in_window(preceding_words: list) -> bool:
+    """
+    Check for negation words/phrases in the window before a trigger.
+
+    Supports both single-word and multi-word negation entries.
+    """
+
+    if not preceding_words:
+        return False
+
+    window_text = " ".join(preceding_words)
+
+    for negation in NEGATION_WORDS:
+        if " " in negation:
+            if negation in window_text:
+                return True
+        else:
+            if negation in preceding_words:
+                return True
+
+    return False
+
 
 def _check_triggers(cleaned_text: str, trigger_list: list) -> tuple:
     """
@@ -235,7 +267,7 @@ def _check_triggers(cleaned_text: str, trigger_list: list) -> tuple:
         # is True for at least one item. It short-circuits — stops as soon
         # as it finds the first True. This is more Pythonic and slightly
         # faster than a manual for loop with a break.
-        is_negated = any(neg in preceding_words for neg in NEGATION_WORDS)
+        is_negated = _negation_in_window(preceding_words)
 
         # STEP 5: Return the result.
         # We found a match. Whether it is negated determines what the
@@ -243,6 +275,31 @@ def _check_triggers(cleaned_text: str, trigger_list: list) -> tuple:
         return True, is_negated
 
     # Looped through all triggers, none matched.
+    return False, False
+
+
+def _check_root_patterns(cleaned_text: str, pattern_list: list) -> tuple:
+    """
+    Check regex root patterns for a match, including negation proximity.
+
+    Returns:
+        (matched: bool, negated: bool)
+    """
+
+    if not pattern_list:
+        return False, False
+
+    for pattern in pattern_list:
+        match = pattern.search(cleaned_text)
+        if not match:
+            continue
+
+        prefix_words = cleaned_text[:match.start()].split()
+        window_start = max(0, len(prefix_words) - NEGATION_PROXIMITY_WORDS)
+        preceding_words = prefix_words[window_start:]
+        is_negated = _negation_in_window(preceding_words)
+        return True, is_negated
+
     return False, False
 
 
@@ -293,6 +350,13 @@ def detect_intent(cleaned_text: str, last_intent: str = None) -> tuple:
         # Run the trigger check with negation detection.
         matched, negated = _check_triggers(cleaned_text, trigger_list)
 
+        # If no phrase matched, try regex roots for this intent.
+        if not matched:
+            root_patterns = ROOT_PATTERN_MAP.get(intent_name, [])
+            if intent_name == "followup" and last_intent not in ("invitation", "followup"):
+                root_patterns = []
+            matched, negated = _check_root_patterns(cleaned_text, root_patterns)
+
         if matched:
             # Special handling: negated anger or invitation is still informative.
             # A negated invitation ("nahi chalte hain") might signal stress
@@ -341,6 +405,7 @@ def create_context() -> dict:
         # These drive the automatic mood transitions.
         "stress_count": 0,         # Stress triggers accumulated in current mood
         "turns_in_mood": 0,        # How many turns spent in the current mood
+        "tense_calm_turns": 0,     # Non-stress turns while tense
         "explosion_cooldown": 0,   # Turns remaining before explosion is possible again
         "total_turns": 0,          # Total turns in the conversation (for debugging)
 
@@ -368,6 +433,9 @@ def update_mood(context: dict, intent: str) -> dict:
 
     ctx = context.copy()
 
+    # Backward compatibility for older contexts that predate new counters.
+    ctx.setdefault("tense_calm_turns", 0)
+
     # Increment total turns and the in-mood counter on every call.
     ctx["total_turns"] += 1
     ctx["turns_in_mood"] += 1
@@ -375,9 +443,6 @@ def update_mood(context: dict, intent: str) -> dict:
     # Decrement explosion cooldown if active.
     # max(0, ...) prevents it going negative — once at zero, it stays at zero.
     ctx["explosion_cooldown"] = max(0, ctx["explosion_cooldown"] - 1)
-
-    # Store the intent for next turn's context awareness.
-    ctx["last_intent"] = intent
 
     # -------------------------------------------------------------------------
     # TRANSITION LOGIC — organised by current mood
@@ -387,6 +452,8 @@ def update_mood(context: dict, intent: str) -> dict:
 
     # ---- TRANSITIONS FROM: normal ----------------------------------------
     if current_mood == "normal":
+
+        ctx["tense_calm_turns"] = 0
 
         if intent == "anger":
             # Betrayal/let-down immediately triggers sulking.
@@ -416,6 +483,7 @@ def update_mood(context: dict, intent: str) -> dict:
 
         elif intent == "stress":
             ctx["stress_count"] += 1
+            ctx["tense_calm_turns"] = 0
 
             if ctx["stress_count"] >= STRESS_COUNT_TO_EXPLODE:
                 # Threshold reached, but explosion is not certain.
@@ -432,7 +500,8 @@ def update_mood(context: dict, intent: str) -> dict:
         else:
             # Non-stress turn while tense, start counting toward recovery.
             # After enough calm turns, drift back to normal.
-            if ctx["turns_in_mood"] >= TENSE_RECOVERY_TURNS:
+            ctx["tense_calm_turns"] += 1
+            if ctx["tense_calm_turns"] >= TENSE_RECOVERY_TURNS:
                 ctx = _transition_to(ctx, "normal")
 
     # ---- TRANSITIONS FROM: sulking ---------------------------------------
@@ -440,13 +509,10 @@ def update_mood(context: dict, intent: str) -> dict:
 
         # While sulking, no input changes mood — only time passing does. This reflects the behaviour: he does not snap out of sulking
         # because of what is said, he just eventually cools down.
-        if ctx["turns_in_mood"] >= SULK_RECOVERY_TURNS:
-            ctx = _transition_to(ctx, "normal")
-
-        # Anger trigger while sulking deepens/resets the sulk timer —
-        # if you remind him of what made him sulk, he sulks longer.
         if intent == "anger":
             ctx["turns_in_mood"] = 0  # Reset the timer — sulk restarts
+        elif ctx["turns_in_mood"] >= SULK_RECOVERY_TURNS:
+            ctx = _transition_to(ctx, "normal")
 
     # ---- TRANSITIONS FROM: exploding -------------------------------------
     elif current_mood == "exploding":
@@ -471,6 +537,7 @@ def _transition_to(ctx: dict, new_mood: str) -> dict:
     ctx["mood"] = new_mood
     ctx["turns_in_mood"] = 0    # Always reset when entering a new mood
     ctx["stress_count"] = 0     # Reset stress accumulation on any transition
+    ctx["tense_calm_turns"] = 0
     return ctx
 
 
@@ -778,5 +845,6 @@ def process_message(user_text: str, context: dict) -> tuple:
 
     # Store the response for context continuity
     context["last_response"] = final_response
+    context["last_intent"] = intent
 
     return final_response, context
