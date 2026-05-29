@@ -18,6 +18,7 @@
 
 import re 
 import random
+import copy
 
 # Import all our data from data.py.
 from data import (
@@ -50,9 +51,9 @@ from data import (
     STRESS_COUNT_TO_TENSE, STRESS_COUNT_TO_EXPLODE,
     SULK_RECOVERY_TURNS, TENSE_RECOVERY_TURNS,
     EXPLOSION_COOLDOWN_TURNS, EXPLOSION_PROBABILITY,
+    AFTERMATH_DURATION_TURNS,
     FENCE_SIT_PROBABILITY, DIRECT_YES_PROBABILITY, TOPIC_DODGE_PROBABILITY,
     DOUBLE_FENCE_SIT_PROB,
-    ANGER_CONFIDENCE_THRESHOLD, DEFAULT_CONFIDENCE_THRESHOLD,
     NEGATION_PROXIMITY_WORDS,
     YAAR_INSERTION_PROB, ELLIPSIS_PROB, ABEY_PREFIX_PROB,
 )
@@ -399,7 +400,7 @@ def create_context() -> dict:
     """
     return {
         # --- MOOD STATE MACHINE ---
-        "mood": "normal",          # Current mood: normal/tense/sulking/exploding
+        "mood": "normal",          # Current mood: normal/tense/sulking/exploding/aftermath
 
         # --- COUNTERS ---
         # These drive the automatic mood transitions.
@@ -431,7 +432,7 @@ def update_mood(context: dict, intent: str) -> dict:
         Updated context dictionary. The original is not modified, we work on a copy.
     """
 
-    ctx = context.copy()
+    ctx = copy.deepcopy(context)
 
     # Backward compatibility for older contexts that predate new counters.
     ctx.setdefault("tense_calm_turns", 0)
@@ -516,9 +517,16 @@ def update_mood(context: dict, intent: str) -> dict:
 
     # ---- TRANSITIONS FROM: exploding -------------------------------------
     elif current_mood == "exploding":
-        # Explosion is a single-turn state. It fires, then immediately transitions to sulking. 
-        # The explosion itself is the response for that turn. After it, he goes quiet.
-        ctx = _transition_to(ctx, "sulking")
+        # Explosion is a single-turn event. After firing, he enters a brief
+        # aftermath — stunned silence — before sliding into full sulking.
+        ctx = _transition_to(ctx, "aftermath")
+
+    # ---- TRANSITIONS FROM: aftermath -------------------------------------
+    elif current_mood == "aftermath":
+        # Aftermath is a short buffer after an explosion. He gives minimal,
+        # shell-shocked responses for a few turns before entering sulking.
+        if ctx["turns_in_mood"] >= AFTERMATH_DURATION_TURNS:
+            ctx = _transition_to(ctx, "sulking")
 
     return ctx
 
@@ -585,7 +593,15 @@ def generate_response(intent: str, context: dict) -> str:
         return f"{opener}\n{middle}\n{closer}"
 
     # ------------------------------------------------------------------
-    # GUARD CLAUSE 2: SULKING
+    # GUARD CLAUSE 2: AFTERMATH
+    # The stunned silence right after an explosion. Even shorter than
+    # sulking — just "..." and "hmm". Lasts a few turns.
+    # ------------------------------------------------------------------
+    if mood == "aftermath":
+        return random.choice(EXPLOSION_AFTERMATH)
+
+    # ------------------------------------------------------------------
+    # GUARD CLAUSE 3: SULKING
     # Sulking also overrides intent, he gives minimal responses
     # regardless of what was asked. One word or short phrase, cold.
     # ------------------------------------------------------------------
@@ -761,7 +777,7 @@ def apply_style(response: str, mood: str) -> str:
     # In sulking: cold brevity is the message. Adding "yaar" would
     # completely destroy the characterisation.
     # In exploding: the rant has its own raw style already.
-    if mood in ("sulking", "exploding"):
+    if mood in ("sulking", "exploding", "aftermath"):
         return response
 
     # From here: normal and tense moods get style treatment.

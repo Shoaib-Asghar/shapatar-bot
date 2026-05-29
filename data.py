@@ -166,6 +166,9 @@ STRESS_TRIGGERS = [
     "event manage", "sab handle", "akele karna",
     "bahut kaam hai", "itna kaam", "kaam zyada",
     "sab kuch manage", "sab sambhalo",
+    # Work related
+    "kaam karna", "kaam kia", "assignment", "project", "exam", "test",
+
 ]
 
 # --- ANGER / BETRAYAL TRIGGERS ---
@@ -335,7 +338,7 @@ INTENT_ROOT_PATTERNS = {
         r'\bkhayal\w*',
         r'\blagta\w*',
         r'\bmashwar\w*',
-        r'\brai\w*',
+        r'\brai\b',
         r'\bopinion\w*'
     ],
     "help_request": [
@@ -350,9 +353,6 @@ INTENT_ROOT_PATTERNS = {
         r'\bhelp\w*'
     ],
     "stress": [
-        r'\bmanage\w*',
-        r'\bsambhal\w*',
-        r'\bhandle\w*',
         r'\bconfirm\w*',
         r'\bschedule\w*',
         r'\bbooking\w*',
@@ -382,7 +382,7 @@ INTENT_ROOT_PATTERNS = {
         r'\bsalam\w*',
         r'\bhello\w*',
         r'\bhey\w*',
-        r'\bhi\w*'
+        r'\bhi\b'
     ]
 }
 
@@ -976,6 +976,7 @@ STRESS_COUNT_TO_EXPLODE  = 2    # Additional stress triggers in TENSE to risk ex
 SULK_RECOVERY_TURNS      = 7    # Messages before he drifts from SULKING back to NORMAL
 TENSE_RECOVERY_TURNS     = 12   # Messages with no stress before TENSE drifts to NORMAL
 EXPLOSION_COOLDOWN_TURNS = 15   # Cannot explode again within this many turns
+AFTERMATH_DURATION_TURNS = 2    # Turns of stunned silence between EXPLODING and SULKING
 
 # --- EVENT PROBABILITIES ---
 EXPLOSION_PROBABILITY    = 0.80  # Chance of exploding when threshold is met (not certain)
@@ -990,9 +991,9 @@ TOPIC_DODGE_PROBABILITY  = 0.10  # Ignores invite, pivots to a passion topic
 DOUBLE_FENCE_SIT_PROB    = 0.65  # vs. 0.35 chance of giving followup deflection
 
 # --- INTENT DETECTION CONFIDENCE THRESHOLDS ---
-# How many trigger phrases must match before an intent is confirmed.
-# Anger is a hair trigger (1 match enough).
-# Everything else requires 2 matches — reduces false positives significantly.
+# Reserved for future use. Currently brain.py fires on the first match
+# (effective threshold of 1). If false positive rates increase, brain.py
+# can be updated to accumulate matches and compare against these values.
 ANGER_CONFIDENCE_THRESHOLD   = 1   # One match is enough for anger — he is sensitive
 DEFAULT_CONFIDENCE_THRESHOLD = 1   # For phrase-level triggers, 1 match is okay
                                     # (phrases are specific enough to not need 2)
